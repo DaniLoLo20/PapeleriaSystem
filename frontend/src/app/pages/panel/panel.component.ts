@@ -220,6 +220,23 @@ export class PanelComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  eliminarImpresos(): void {
+    const confirmar = window.confirm('Se eliminaran pedidos en estado PRINTED y sus archivos fisicos. Continuar?');
+    if (!confirmar) {
+      return;
+    }
+
+    this.ordersApi.cleanup('DELETE_PRINTED').subscribe({
+      next: (resp: any) => {
+        const count = Number(resp?.orders_deleted || 0);
+        this.mensaje = count > 0 ? `Se eliminaron ${count} pedido(s) impresos.` : 'No habia pedidos impresos para eliminar.';
+        this.cargarPedidos(true);
+        this.actualizarResumenEstados();
+      },
+      error: () => (this.mensaje = 'No se pudieron eliminar pedidos impresos.'),
+    });
+  }
+
   abrirPdf(order: OrderModel): void {
     window.open(this.ordersApi.getCompiledPdfUrl(order.id), '_blank');
   }

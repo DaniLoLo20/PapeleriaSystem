@@ -8,11 +8,29 @@
 
 .topbar {
   display: flex;
+  align-items: center;
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid #dbe3ef;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f1f7ff, #ffffff);
+  border: 1px solid #d7e4f6;
+}
+
+.brand img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .topbar a {
@@ -27,4 +45,84 @@
 
 main {
   padding: 20px;
+}
+
+.app-loader-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(12, 19, 37, 0.5);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.app-loader-card {
+  width: min(560px, 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(176, 198, 235, 0.9);
+  background: linear-gradient(180deg, #f8fbff, #eef4ff);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.35);
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  padding: 20px 16px;
+}
+
+.app-loader-card img {
+  width: clamp(120px, 22vw, 180px);
+  height: auto;
+  object-fit: contain;
+}
+
+.app-loader-card p {
+  margin: 0;
+  color: #1d335a;
+  font-weight: 700;
+}
+
+.spinner-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner-grow {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spinner-grow 1s linear infinite;
+}
+
+@keyframes spinner-grow {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.text-primary { background: #0d6efd; }
+.text-secondary { background: #6c757d; }
+.text-success { background: #198754; }
+.text-danger { background: #dc3545; }
+.text-warning { background: #ffc107; }
+.text-info { background: #0dcaf0; }
+.text-light { background: #f8f9fa; border: 1px solid #d5deea; }
+.text-dark { background: #212529; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }

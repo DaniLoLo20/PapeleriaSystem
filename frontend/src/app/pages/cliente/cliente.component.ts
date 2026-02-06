@@ -6,6 +6,7 @@ import { driver, type Driver } from 'driver.js';
 import { finalize } from 'rxjs';
 import Swal from 'sweetalert2';
 import { OrdersApi } from '../../core/api/orders.api';
+import { UiLoaderService } from '../../core/utils/ui-loader.service';
 import { UploadDropzoneComponent } from '../../shared/components/upload-dropzone/upload-dropzone.component';
 
 type CropRect = { x: number; y: number; w: number; h: number };
@@ -154,6 +155,7 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     private readonly fb: FormBuilder,
     private readonly ordersApi: OrdersApi,
     private readonly cdr: ChangeDetectorRef,
+    private readonly uiLoader: UiLoaderService,
   ) {
     this.form = this.fb.nonNullable.group({
       customer_name: ['', [Validators.required, Validators.minLength(2)]],
@@ -1075,6 +1077,7 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     }
 
     this.cargando = true;
+    this.uiLoader.showFor(1800, 'Enviando documento...');
     this.mensaje = '';
     this.pdfUrl = '';
 

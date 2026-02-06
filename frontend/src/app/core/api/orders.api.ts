@@ -68,7 +68,7 @@ export class OrdersApi {
     );
   }
 
-  cleanup(mode: 'ARCHIVE_PRINTED' | 'CLEAN_ARCHIVED_OLDER_THAN', days?: number): Observable<unknown> {
+  cleanup(mode: 'ARCHIVE_PRINTED' | 'CLEAN_ARCHIVED_OLDER_THAN' | 'DELETE_PRINTED', days?: number): Observable<unknown> {
     return this.http.post(
       `${this.baseUrl}/orders/cleanup`,
       { mode, days },
