@@ -1,0 +1,311 @@
+﻿<section class="cliente" (click)="cerrarMenuContextual()">
+  <h1>Solicitud de impresion</h1>
+
+  <form [formGroup]="form" class="formulario" data-tour="cliente-form">
+    <label>
+      Nombre
+      <input type="text" formControlName="customer_name" />
+    </label>
+
+    <label>
+      Telefono (opcional)
+      <input type="text" formControlName="phone" />
+    </label>
+
+    <label>
+      Notas
+      <textarea rows="3" formControlName="notes"></textarea>
+    </label>
+
+    <div class="grid-opciones">
+      <label>
+        Color
+        <select formControlName="bnColor">
+          <option value="BN">Blanco y negro</option>
+          <option value="COLOR">Color</option>
+        </select>
+      </label>
+
+      <label>
+        Tamano
+        <select formControlName="size">
+          <option value="CARTA">Carta</option>
+          <option value="OFICIO">Oficio</option>
+          <option value="A4">A4</option>
+        </select>
+      </label>
+
+      <label>
+        Copias
+        <input type="number" min="1" max="100" formControlName="copies" />
+      </label>
+    </div>
+  </form>
+
+  <app-upload-dropzone data-tour="cliente-upload" (archivosSeleccionados)="agregarArchivos($event)"></app-upload-dropzone>
+  <input #inputNuevaImagen type="file" multiple accept="image/*,application/pdf" hidden (change)="onNuevaImagenSeleccionada($event)" />
+
+  <section class="seccion-lista" data-tour="cliente-lista" cdkDropList [cdkDropListData]="elementosDiseno" (cdkDropListDropped)="drop($event)">
+    <h3>Imagenes en diseno</h3>
+    @for (archivo of elementosDiseno; track archivo.id) {
+      <div cdkDrag class="archivo-item">
+        <span>{{ $index + 1 }}. {{ archivo.file.name }}</span>
+        <button type="button" (click)="seleccionarArchivo(archivo)">Editar en hoja</button>
+        <button type="button" (click)="quitarElementoDisenoPorId(archivo.id)">Quitar</button>
+      </div>
+    }
+  </section>
+
+  <section class="seccion-lista" cdkDropList [cdkDropListData]="anexosPdf" (cdkDropListDropped)="dropAnexos($event)">
+    <h3>Anexos PDF (al final)</h3>
+    @for (anexo of anexosPdf; track anexo.id) {
+      <div cdkDrag class="archivo-item anexo-item">
+        <span>{{ $index + 1 }}. {{ anexo.file.name }}</span>
+        <button type="button" (click)="quitarAnexo($index)">Quitar</button>
+      </div>
+    }
+  </section>
+
+  @if (mostrarEditor) {
+    <section class="editor-word">
+      <h2>Editor de hoja (tipo Word)</h2>
+
+      <div class="toolbar-word" data-tour="cliente-toolbar">
+        <label>
+          Zoom {{ zoomEfectivo | number: '1.0-0' }}%
+          <input type="range" min="50" max="150" step="5" [ngModel]="zoom" (ngModelChange)="zoom = $event" [ngModelOptions]="{ standalone: true }" />
+        </label>
+        <label class="switch-movil">
+          <input type="checkbox" [ngModel]="autoAjusteMovil" (ngModelChange)="autoAjusteMovil = $event" [ngModelOptions]="{ standalone: true }" />
+          Ajustar canvas a pantalla (movil)
+        </label>
+
+        <label data-tour="cliente-auto-hoja">
+          Auto por hoja
+          <select [ngModel]="autoPorHoja" (ngModelChange)="autoPorHoja = $event" [ngModelOptions]="{ standalone: true }">
+            @for (n of opcionesAutoPorHoja; track n) {
+              <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </label>
+
+        <button type="button" (click)="autoAcomodarPorHoja()">Aplicar auto</button>
+        <button type="button" (click)="agregarTextoDesdeMenu()">Anadir texto</button>
+        <button type="button" (click)="agregarImagenDesdeMenu()">Anadir nueva imagen</button>
+        <button type="button" (click)="eliminarSeleccionado()">Eliminar seleccionado</button>
+      </div>
+
+      <div #canvasWrapperRef class="canvas-wrapper" data-tour="cliente-canvas">
+        <div
+          #hojaRef
+          class="hoja"
+          [style.width.px]="medidaHojaActual().width"
+          [style.height.px]="medidaHojaActual().height"
+          [style.transform]="'scale(' + zoomEfectivo / 100 + ')'"
+          (contextmenu)="abrirMenuContextualCanvas($event)"
+        >
+          @for (archivo of textosPaginaActual; track archivo.id) {
+            <div
+              class="objeto-hoja objeto-texto"
+              [class.sin-fondo]="!archivo.style.hasBackground"
+              [class.selected]="archivo.id === textoSeleccionadoId"
+              [style.left.px]="archivo.x"
+              [style.top.px]="archivo.y"
+              [style.width.px]="archivo.width"
+              [style.height.px]="archivo.height"
+              [style.zIndex]="archivo.zIndex + 100000"
+              (pointerdown)="iniciarArrastreTexto($event, archivo)"
+              (contextmenu)="abrirMenuContextualTexto($event, archivo)"
+            >
+              <div
+                class="texto-contenido"
+                [ngStyle]="getTextStyle(archivo)"
+                contenteditable="true"
+                (focus)="onTextoInlineFocus(archivo)"
+                (blur)="onTextoInlineBlur(archivo, $event)"
+                (keydown)="$event.stopPropagation()"
+                (pointerdown)="$event.stopPropagation()"
+              >{{ archivo.text }}</div>
+              <button class="mover-texto" type="button" title="Mover texto" (pointerdown)="iniciarArrastreTexto($event, archivo)">Mover</button>
+              <button class="resize-handle" type="button" (pointerdown)="iniciarResizeTexto($event, archivo)"></button>
+              <button class="quitar-objeto" type="button" (click)="quitarTextoPorId(archivo.id)">x</button>
+            </div>
+          }
+
+          @for (archivo of elementosPaginaActual; track archivo.id) {
+            <div
+              class="objeto-hoja"
+              [class.selected]="archivo.id === archivoSeleccionadoId"
+              [class.crop-mode]="cropModeFileId === archivo.id"
+              [style.left.px]="archivo.x"
+              [style.top.px]="archivo.y"
+              [style.width.px]="archivo.width"
+              [style.height.px]="archivo.height"
+              [style.zIndex]="archivo.zIndex"
+              (pointerdown)="iniciarArrastreImagen($event, archivo)"
+              (contextmenu)="abrirMenuContextualImagen($event, archivo)"
+            >
+              <div class="crop-frame">
+                <img [src]="obtenerPreview(archivo)" [alt]="archivo.file.name" class="crop-img" [ngStyle]="getRenderedImageStyle(archivo)" />
+
+                @if (cropModeFileId === archivo.id) {
+                  <div class="crop-overlay" [ngStyle]="getCropOverlayStyle(archivo)" (pointerdown)="iniciarDragCropBox($event, archivo, 'move')">
+                    <span class="crop-handle nw" (pointerdown)="iniciarDragCropBox($event, archivo, 'nw')"></span>
+                    <span class="crop-handle ne" (pointerdown)="iniciarDragCropBox($event, archivo, 'ne')"></span>
+                    <span class="crop-handle sw" (pointerdown)="iniciarDragCropBox($event, archivo, 'sw')"></span>
+                    <span class="crop-handle se" (pointerdown)="iniciarDragCropBox($event, archivo, 'se')"></span>
+                  </div>
+                }
+              </div>
+
+              <button class="resize-handle" type="button" (pointerdown)="iniciarResizeImagen($event, archivo)"></button>
+              <button class="quitar-objeto" type="button" (click)="quitarElementoDisenoPorId(archivo.id)">x</button>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (menuContextual.visible) {
+        <div class="context-menu" [style.left.px]="menuContextual.x" [style.top.px]="menuContextual.y" (click)="$event.stopPropagation()">
+          <button type="button" (click)="agregarTextoDesdeMenu()">Anadir texto superpuesto</button>
+          <button type="button" (click)="agregarImagenDesdeMenu()">Anadir nueva imagen</button>
+          @if (menuContextual.target === 'image') {
+            <button type="button" (click)="activarRecorteDesdeMenu()">Recortar imagen</button>
+          }
+          @if (menuContextual.target === 'text') {
+            <button type="button" (click)="activarEdicionInlineDesdeMenu()">Editar inline (activo)</button>
+            <button type="button" (click)="toggleFondoTextoDesdeMenu()">Con/Sin fondo</button>
+            <button type="button" (click)="toggleNegritaTextoDesdeMenu()">Negrita</button>
+            <button type="button" (click)="toggleCursivaTextoDesdeMenu()">Cursiva</button>
+            <button type="button" (click)="alinearTextoDesdeMenu('left')">Alinear izquierda</button>
+            <button type="button" (click)="alinearTextoDesdeMenu('center')">Alinear centro</button>
+            <button type="button" (click)="alinearTextoDesdeMenu('right')">Alinear derecha</button>
+          }
+        </div>
+      }
+
+      <div class="panel-propiedades">
+        @if (textoSeleccionado; as texto) {
+          <span>Texto seleccionado</span>
+          <label>Contenido
+            <textarea rows="3" [ngModel]="texto.text" (ngModelChange)="actualizarTextoSeleccionado($event)" [ngModelOptions]="{ standalone: true }"></textarea>
+          </label>
+          <label>Tamano
+            <input type="number" min="10" max="120" [ngModel]="texto.style.fontSize" (ngModelChange)="actualizarEstiloTexto('fontSize', +$event)" [ngModelOptions]="{ standalone: true }" />
+          </label>
+          <label>Fuente
+            <select [ngModel]="texto.style.fontFamily" (ngModelChange)="actualizarEstiloTexto('fontFamily', $event)" [ngModelOptions]="{ standalone: true }">
+              @for (f of fuentesTexto; track f) {
+                <option [value]="f">{{ f }}</option>
+              }
+            </select>
+          </label>
+          <label>Color
+            <input type="color" [ngModel]="texto.style.color" (ngModelChange)="actualizarEstiloTexto('color', $event)" [ngModelOptions]="{ standalone: true }" />
+          </label>
+          <label><input type="checkbox" [ngModel]="texto.style.bold" (ngModelChange)="actualizarEstiloTexto('bold', $event)" [ngModelOptions]="{ standalone: true }" /> Negritas</label>
+          <label><input type="checkbox" [ngModel]="texto.style.italic" (ngModelChange)="actualizarEstiloTexto('italic', $event)" [ngModelOptions]="{ standalone: true }" /> Cursiva</label>
+        } @else {
+          <span>Tip: click derecho en el canvas para Anadir texto o imagen. Usa Ctrl+V para pegar texto.</span>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="acciones-finales">
+    <button type="button" class="secundario" (click)="verGuia()">Ver guia</button>
+    <button type="button" class="secundario" (click)="abrirVistaPrevia()">Vista previa</button>
+    <button type="button" data-tour="cliente-enviar" (click)="enviarPedido()" [disabled]="cargando">Enviar pedido</button>
+  </div>
+
+  @if (mensaje) {
+    <p class="mensaje">{{ mensaje }}</p>
+  }
+
+  @if (pdfUrl) {
+    <a [href]="pdfUrl" target="_blank" rel="noopener">Descargar PDF final</a>
+  }
+</section>
+
+@if (mostrarVistaPrevia) {
+  <div class="preview-modal-backdrop" (click)="cerrarVistaPrevia()">
+    <section class="preview-modal" (click)="$event.stopPropagation()">
+      <header class="preview-head">
+        <h3>Vista previa del documento</h3>
+        <button type="button" class="secundario" (click)="cerrarVistaPrevia()">Cerrar</button>
+      </header>
+
+      <div class="preview-grid">
+        @for (page of paginasVistaPrevia; track page) {
+          <article class="preview-card">
+            <strong>Hoja {{ page + 1 }}</strong>
+            <div class="mini-hoja-shell" [style.width.px]="anchoMiniHoja()" [style.height.px]="altoMiniHoja()">
+              <div
+                class="mini-hoja"
+                [style.width.px]="medidaHojaActual().width"
+                [style.height.px]="medidaHojaActual().height"
+                [style.transform]="'scale(' + escalaVistaPrevia() + ')'"
+              >
+                @for (texto of textosDePagina(page); track texto.id) {
+                  <div
+                    class="mini-item mini-texto"
+                    [style.left.px]="texto.x"
+                    [style.top.px]="texto.y"
+                    [style.width.px]="texto.width"
+                    [style.height.px]="texto.height"
+                    [style.zIndex]="texto.zIndex + 100000"
+                    [ngStyle]="getTextStyle(texto)"
+                  >
+                    {{ texto.text }}
+                  </div>
+                }
+
+                @for (archivo of elementosDePagina(page); track archivo.id) {
+                  <div
+                    class="mini-item mini-imagen"
+                    [style.left.px]="archivo.x"
+                    [style.top.px]="archivo.y"
+                    [style.width.px]="archivo.width"
+                    [style.height.px]="archivo.height"
+                    [style.zIndex]="archivo.zIndex"
+                  >
+                    <img [src]="obtenerPreview(archivo)" [alt]="archivo.file.name" [ngStyle]="getRenderedImageStyle(archivo)" />
+                  </div>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (anexosPdf.length) {
+        <div class="preview-anexos">
+          <strong>Anexos PDF al final</strong>
+          <ul>
+            @for (anexo of anexosPdf; track anexo.id) {
+              <li>{{ anexo.file.name }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <footer class="preview-actions">
+        <button type="button" class="secundario" (click)="cerrarVistaPrevia()">Seguir editando</button>
+        <button type="button" (click)="enviarDesdeVistaPrevia()" [disabled]="cargando">Enviar documento</button>
+      </footer>
+    </section>
+  </div>
+}
+
+<button
+  type="button"
+  class="tour-fab"
+  data-tour="cliente-tour-fab"
+  [style.left.px]="tourFabX"
+  [style.top.px]="tourFabY"
+  (pointerdown)="onTourFabPointerDown($event)"
+  (click)="onTourFabClick($event)"
+>
+  Guia
+</button>
+

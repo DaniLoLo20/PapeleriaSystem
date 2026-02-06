@@ -1,0 +1,317 @@
+<section class="panel">
+  <header class="panel-head" data-tour="panel-head">
+    <div>
+      <h1>Panel PC</h1>
+      <p>Control rapido de pedidos, impresion y entrega.</p>
+    </div>
+
+    <div class="head-actions">
+      <button type="button" class="doc-btn" data-tour="panel-crear-doc" (click)="toggleCreadorDocumento()">
+        {{ mostrarCreadorDocumento ? 'Ocultar crear documento' : 'Crear documento' }}
+      </button>
+      <button type="button" class="noti-btn" data-tour="panel-pendientes" [class.pulse]="notificacionPulse" (click)="irAPendientes()">
+        <span class="icono-campana" aria-hidden="true">[!]</span>
+        <span class="texto-noti">Pendientes</span>
+        @if (notificacionesPendientes > 0) {
+          <span class="badge">{{ notificacionesPendientes }}</span>
+        }
+      </button>
+    </div>
+  </header>
+
+  @if (mostrarCreadorDocumento) {
+    <section class="doc-builder">
+      <div class="doc-tabs">
+        <button type="button" [class.active]="vistaCreador === 'DOCUMENTO'" (click)="vistaCreador = 'DOCUMENTO'">Documento</button>
+        <button type="button" [class.active]="vistaCreador === 'PLANTILLAS'" (click)="vistaCreador = 'PLANTILLAS'">Plantillas</button>
+      </div>
+
+      @if (vistaCreador === 'DOCUMENTO') {
+        <div class="doc-grid">
+          <div class="doc-form">
+            <label>
+              Titulo
+              <input type="text" [ngModel]="documentoTitulo" (ngModelChange)="documentoTitulo = $event" />
+            </label>
+
+            <div class="doc-mode">
+              <button type="button" [class.active]="modoDocumento === 'BLANCO'" (click)="seleccionarModoDocumento('BLANCO')">En blanco</button>
+              <button type="button" [class.active]="modoDocumento === 'PLANTILLA'" (click)="seleccionarModoDocumento('PLANTILLA')">Basado en plantilla</button>
+            </div>
+
+            @if (modoDocumento === 'PLANTILLA') {
+              <label>
+                Plantilla
+                <select [ngModel]="plantillaSeleccionadaId" (ngModelChange)="plantillaSeleccionadaId = $event; aplicarPlantillaSeleccionada()">
+                  @for (tpl of plantillasDocumento; track tpl.id) {
+                    <option [value]="tpl.id">{{ tpl.nombre }}</option>
+                  }
+                </select>
+              </label>
+            }
+
+            <div class="vars-grid">
+              <label>Nombre <input type="text" [ngModel]="docVars.nombre" (ngModelChange)="docVars.nombre = $event" /></label>
+              <label>Fecha <input type="text" placeholder="2026-02-06" [ngModel]="docVars.fecha" (ngModelChange)="docVars.fecha = $event" /></label>
+              <label>Rango fecha <input type="text" placeholder="01 al 15 de febrero" [ngModel]="docVars.rango_fecha" (ngModelChange)="docVars.rango_fecha = $event" /></label>
+              <label>Hoy <input type="text" [ngModel]="docVars.hoy" (ngModelChange)="docVars.hoy = $event" /></label>
+              <label>Telefono <input type="text" [ngModel]="docVars.telefono" (ngModelChange)="docVars.telefono = $event" /></label>
+              <label>Empresa <input type="text" [ngModel]="docVars.empresa" (ngModelChange)="docVars.empresa = $event" /></label>
+            </div>
+
+            <div class="chips">
+              @for (token of placeholders; track token) {
+                <button type="button" (click)="insertarPlaceholderEnDocumento(token)">{{ token }}</button>
+              }
+            </div>
+
+            <div class="editor-rich">
+              <div class="editor-toolbar">
+                <button type="button" (click)="aplicarComandoEditor('bold')"><b>N</b></button>
+                <button type="button" (click)="aplicarComandoEditor('italic')"><i>I</i></button>
+                <button type="button" (click)="aplicarComandoEditor('underline')"><u>S</u></button>
+                <button type="button" (click)="cambiarAlineacion('left')">Izq</button>
+                <button type="button" (click)="cambiarAlineacion('center')">Centro</button>
+                <button type="button" (click)="cambiarAlineacion('right')">Der</button>
+                <button type="button" (click)="cambiarAlineacion('justify')">Just</button>
+                <button type="button" (click)="aplicarComandoEditor('insertUnorderedList')">• Lista</button>
+                <button type="button" (click)="aplicarComandoEditor('insertOrderedList')">1. Lista</button>
+                <button type="button" (click)="aplicarComandoEditor('removeFormat')">Limpiar formato</button>
+              </div>
+              <div
+                #docEditorRef
+                class="editor-area"
+                contenteditable="true"
+                (input)="onEditorInput($event)"
+                [innerHTML]="documentoContenido"
+              ></div>
+            </div>
+
+            <div class="doc-actions">
+              <button type="button" (click)="copiarDocumentoFinal()">Copiar final</button>
+              <button type="button" class="primary" (click)="descargarDocumentoPdf()">Descargar PDF</button>
+            </div>
+          </div>
+
+          <div class="doc-preview">
+            <h4>Vista previa (variables sustituidas)</h4>
+            <div class="doc-page">
+              <div #docPreviewRef class="doc-page-content" [innerHTML]="vistaDocumentoFinalHtml()"></div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="templates-grid">
+          <div class="template-form">
+            <label>
+              Nombre de plantilla
+              <input type="text" [ngModel]="nuevaPlantillaNombre" (ngModelChange)="nuevaPlantillaNombre = $event" />
+            </label>
+
+            <div class="chips">
+              @for (token of placeholders; track token) {
+                <button type="button" (click)="insertarPlaceholderEnNuevaPlantilla(token)">{{ token }}</button>
+              }
+            </div>
+
+            <label>
+              Contenido plantilla
+              <textarea rows="8" [ngModel]="nuevaPlantillaContenido" (ngModelChange)="nuevaPlantillaContenido = $event"></textarea>
+            </label>
+            <button type="button" class="primary" (click)="guardarPlantilla()">Guardar plantilla</button>
+          </div>
+
+          <div class="template-list">
+            <h4>Plantillas guardadas</h4>
+            @if (!plantillasDocumento.length) {
+              <p class="estado-msg">Aun no hay plantillas.</p>
+            }
+            @for (tpl of plantillasDocumento; track tpl.id) {
+              <div class="template-item">
+                <strong>{{ tpl.nombre }}</strong>
+                <small>{{ tpl.createdAt | date: 'short' }}</small>
+                <div class="template-item-actions">
+                  <button type="button" (click)="usarPlantilla(tpl.id)">Usar</button>
+                  <button type="button" (click)="eliminarPlantilla(tpl.id)">Eliminar</button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+
+  <div class="resumen" data-tour="panel-estados">
+    @for (estado of estados; track estado) {
+      <button
+        type="button"
+        class="resumen-chip"
+        [class.active]="estado === estadoActivo"
+        (click)="seleccionarEstado(estado)"
+      >
+        <span>{{ estado }}</span>
+        <strong>{{ resumenEstados[estado] }}</strong>
+      </button>
+    }
+  </div>
+
+  <div class="acciones-globales" data-tour="panel-acciones-globales">
+    <button type="button" (click)="archivarImpresos()">Archivar impresos</button>
+    <button type="button" (click)="limpiarArchivados()">Limpiar archivados +30 dias</button>
+    <span class="ultima-revision">Ultima revision: {{ ultimaRevision | date: 'shortTime' }}</span>
+  </div>
+
+  <div class="filtros" data-tour="panel-filtros">
+    <label>
+      Filtrar por nombre
+      <input
+        type="text"
+        placeholder="Ej. Juan Perez"
+        [ngModel]="filtroNombre"
+        (ngModelChange)="filtroNombre = $event"
+      />
+    </label>
+    <label>
+      Filtrar por fecha
+      <input
+        type="date"
+        [ngModel]="filtroFecha"
+        (ngModelChange)="filtroFecha = $event"
+      />
+    </label>
+    <button type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
+  </div>
+
+  @if (cargando) {
+    <p class="estado-msg">Cargando pedidos...</p>
+  }
+
+  @if (mensaje) {
+    <p class="estado-msg">{{ mensaje }}</p>
+  }
+
+  <div class="cards" data-tour="panel-cards">
+    @for (pedido of pedidosFiltrados; track pedido.id) {
+      <div class="card-wrap">
+        <app-order-card [pedido]="pedido"></app-order-card>
+        <div class="acciones">
+          <button type="button" (click)="cambiarEstado(pedido, 'IN_PROGRESS')">Marcar en proceso</button>
+          <button type="button" (click)="cambiarEstado(pedido, 'PRINTED')">Marcar impreso</button>
+          <button type="button" (click)="cambiarEstado(pedido, 'DELIVERED')">Entregado</button>
+          <button type="button" (click)="cambiarEstado(pedido, 'ARCHIVED')">Archivar</button>
+          <button type="button" (click)="abrirPdf(pedido)">Abrir PDF</button>
+          <button type="button" class="primary" data-tour="panel-reorganizar" (click)="toggleEditor(pedido)">Reorganizar documento</button>
+        </div>
+
+        @if (editorPedidoId === pedido.id) {
+          <div class="editor-archivos" (paste)="onCreatorPaste(pedido, $event)">
+            <div class="designer-panel">
+              <div class="designer-toolbar">
+                <strong>Designer visual</strong>
+                <label>
+                  Auto por hoja
+                  <select [ngModel]="autoPerPageByOrder[pedido.id]" (ngModelChange)="autoPerPageByOrder[pedido.id] = $event">
+                    @for (n of opcionesAuto; track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </label>
+                <button type="button" (click)="aplicarAutoDesigner(pedido)">Auto acomodar</button>
+                <button type="button" class="primary" (click)="guardarDesigner(pedido)">Guardar designer y recompilar</button>
+              </div>
+
+              @if (designerReadyByOrder[pedido.id] && designerByOrder[pedido.id]?.length) {
+                <div class="designer-pages">
+                  <button type="button" (click)="anteriorPaginaDesigner(pedido.id)">Pagina anterior</button>
+                  <span>Pagina {{ (designerPageByOrder[pedido.id] || 0) + 1 }} / {{ designerTotalPaginas(pedido.id) }}</span>
+                  <button type="button" (click)="siguientePaginaDesigner(pedido.id)">Pagina siguiente</button>
+                </div>
+
+                <div class="designer-canvas-shell" [style.height.px]="designerCanvasShellHeight(pedido)">
+                  <div
+                    class="designer-canvas"
+                    [id]="'designer-canvas-' + pedido.id"
+                    [style.width.px]="editorSizeByPaper(getOrderPaper(pedido)).width"
+                    [style.height.px]="editorSizeByPaper(getOrderPaper(pedido)).height"
+                    [style.transform]="'scale(' + designerScale(pedido) + ')'"
+                  >
+                    @for (item of designerItemsPagina(pedido.id); track item.fileId) {
+                      <div
+                        class="designer-item"
+                        cdkDrag
+                        [cdkDragBoundary]="'#designer-canvas-' + pedido.id"
+                        [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
+                        (cdkDragEnded)="onDesignerDragEnded(pedido, item, $event)"
+                        [style.width.px]="item.width"
+                        [style.height.px]="item.height"
+                      >
+                        <img [src]="item.previewUrl" [alt]="item.fileName" />
+                        <small>{{ item.fileName }}</small>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else if (designerReadyByOrder[pedido.id]) {
+                <p class="estado-msg">Este pedido no tiene imagenes para designer visual.</p>
+              } @else {
+                <p class="estado-msg">Preparando designer...</p>
+              }
+            </div>
+
+            <div class="menu-crear">
+              <strong>Crear documento</strong>
+              <span>Pega imagenes con Ctrl+V o sube archivos</span>
+              <input type="file" multiple (change)="onCreatorUpload(pedido, $event)" />
+              <button type="button" (click)="toggleCreator(pedido)">
+                {{ creatorPedidoId === pedido.id ? 'Ocultar creador' : 'Mostrar creador' }}
+              </button>
+            </div>
+
+            @if (creatorPedidoId === pedido.id) {
+              <div class="layout-tools">
+                <label>
+                  Auto por hoja
+                  <select [ngModel]="autoPerPageByOrder[pedido.id]" (ngModelChange)="autoPerPageByOrder[pedido.id] = $event">
+                    @for (n of opcionesAuto; track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
+                </label>
+                <button type="button" class="primary" (click)="generarLayout(pedido)">Generar layout y recompilar</button>
+              </div>
+            }
+
+            @if (cargandoArchivosPorPedido[pedido.id]) {
+              <p class="estado-msg">Cargando archivos del pedido...</p>
+            }
+
+            <div cdkDropList [cdkDropListData]="archivosPorPedido[pedido.id] || []" (cdkDropListDropped)="onDropFiles(pedido.id, $event)">
+              @for (archivo of archivosPorPedido[pedido.id] || []; track archivo.id) {
+                <div cdkDrag class="fila-archivo">
+                  <span>{{ $index + 1 }}. {{ archivo.original_name }}</span>
+                  <button type="button" (click)="moverArchivo(pedido.id, $index, -1)">Subir</button>
+                  <button type="button" (click)="moverArchivo(pedido.id, $index, 1)">Bajar</button>
+                </div>
+              }
+            </div>
+
+            <button type="button" class="primary" (click)="guardarOrden(pedido)">Guardar orden y recompilar</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<button
+  type="button"
+  class="tour-fab"
+  data-tour="panel-tour-fab"
+  [style.left.px]="tourFabX"
+  [style.top.px]="tourFabY"
+  (pointerdown)="onTourFabPointerDown($event)"
+  (click)="onTourFabClick($event)"
+>
+  Guia
+</button>

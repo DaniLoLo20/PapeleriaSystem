@@ -1,0 +1,10 @@
+<article class="card">
+  <header>
+    <h3>{{ pedido.folio }}</h3>
+    <span class="chip">{{ estadoLabel(pedido.status) }}</span>
+  </header>
+  <p><b>Cliente:</b> {{ pedido.customer_name }}</p>
+  <p><b>Fecha:</b> {{ fecha(pedido.created_at) }}</p>
+  <p><b>Notas:</b> {{ pedido.notes || 'Sin notas' }}</p>
+  <p><b>Opciones:</b> {{ pedido.options['bnColor'] || 'BN' }} / {{ pedido.options['size'] || 'CARTA' }} / {{ pedido.options['copies'] || 1 }} copias</p>
+</article>
