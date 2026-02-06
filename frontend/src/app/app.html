@@ -2,28 +2,9 @@
   <span class="brand">
     <img src="/app-logo.png" alt="Logo Papeleria" />
   </span>
-  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="mostrarLoaderCambioVista()">Cliente</a>
-  <a routerLink="/panel" routerLinkActive="active" (click)="mostrarLoaderCambioVista()">Panel PC</a>
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Cliente</a>
+  <a routerLink="/panel" routerLinkActive="active">Panel PC</a>
 </nav>
 <main>
   <router-outlet></router-outlet>
 </main>
-
-@if (loaderVisible) {
-  <div class="app-loader-backdrop">
-    <section class="app-loader-card">
-      <img src="/logo-loader.png" alt="Logo Papeleria" />
-      <p>{{ loaderMessage }}</p>
-      <div class="spinner-row">
-        <div class="spinner-grow text-primary" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-secondary" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-success" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-danger" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-warning" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-info" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-light" role="status"><span class="sr-only">Loading...</span></div>
-        <div class="spinner-grow text-dark" role="status"><span class="sr-only">Loading...</span></div>
-      </div>
-    </section>
-  </div>
-}

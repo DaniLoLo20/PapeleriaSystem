@@ -139,6 +139,7 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
 
   private readonly previews = new Map<string, string>();
   private readonly tourStorageKey = 'papeleria_cliente_tour_v1';
+  private imageClipboard: ArchivoEditor | null = null;
   private dragState: DragState | null = null;
   private resizeState: ResizeState | null = null;
   private cropBoxDragState: CropBoxDragState | null = null;
@@ -219,9 +220,22 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
 
     const ctrlOrCmd = event.ctrlKey || event.metaKey;
     if (ctrlOrCmd && event.key.toLowerCase() === 'c') {
+      if (this.imagenSeleccionada) {
+        this.imageClipboard = this.crearClonImagen(this.imagenSeleccionada, false);
+        event.preventDefault();
+        return;
+      }
       const text = this.textoSeleccionado?.text?.trim();
       if (text) {
         void navigator.clipboard?.writeText(text);
+      }
+      return;
+    }
+
+    if (ctrlOrCmd && event.key.toLowerCase() === 'v') {
+      if (this.imageClipboard) {
+        event.preventDefault();
+        this.pegarImagenDesdeClipboard();
       }
       return;
     }
@@ -283,9 +297,14 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     return this.elementosDiseno.find((f) => f.id === this.archivoSeleccionadoId) ?? null;
   }
 
-  agregarArchivos(files: File[]): void {
+  agregarArchivos(files: File[] | FileList | unknown): void {
+    const lista = this.normalizeInputFiles(files);
+    if (!lista.length) {
+      return;
+    }
+
     const capacidadDisponible = 25 - this.totalArchivos;
-    const filesRecortados = files.slice(0, Math.max(0, capacidadDisponible));
+    const filesRecortados = lista.slice(0, Math.max(0, capacidadDisponible));
 
     const imagenes = filesRecortados.filter((f) => f.type.startsWith('image/'));
     const pdfs = filesRecortados.filter((f) => f.type === 'application/pdf');
@@ -711,6 +730,18 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     this.cerrarMenuContextual();
   }
 
+  duplicarImagenDesdeMenu(): void {
+    const item = this.elementosDiseno.find((f) => f.id === this.menuContextual.fileId);
+    if (!item) {
+      this.cerrarMenuContextual();
+      return;
+    }
+
+    const clone = this.crearClonImagen(item, true);
+    this.insertarImagenClon(clone);
+    this.cerrarMenuContextual();
+  }
+
   iniciarArrastreImagen(event: PointerEvent, item: ArchivoEditor): void {
     const target = event.target as HTMLElement;
     if (target.classList.contains('resize-handle') || target.classList.contains('crop-overlay') || target.classList.contains('crop-handle')) {
@@ -804,15 +835,14 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     event.preventDefault();
     event.stopPropagation();
 
-    const view = this.getContainViewRect(item);
     this.cropBoxDragState = {
       fileId: item.id,
       mode,
       startXClient: event.clientX,
       startYClient: event.clientY,
       startRect: { ...item.cropRect },
-      displayW: view.w,
-      displayH: view.h,
+      displayW: item.width,
+      displayH: item.height,
     };
 
     window.addEventListener('pointermove', this.onPointerMove);
@@ -875,6 +905,15 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     this.textosDiseno = [...this.textosDiseno, nuevo];
     this.textoSeleccionadoId = nuevo.id;
     this.archivoSeleccionadoId = null;
+  }
+
+  private pegarImagenDesdeClipboard(): void {
+    if (!this.imageClipboard) {
+      return;
+    }
+
+    const clone = this.crearClonImagen(this.imageClipboard, true);
+    this.insertarImagenClon(clone);
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
@@ -969,6 +1008,43 @@ export class ClienteComponent implements OnDestroy, AfterViewInit {
     }
 
     return { x: left, y: top, w: Math.max(minSize, right - left), h: Math.max(minSize, bottom - top) };
+  }
+
+  private crearClonImagen(base: ArchivoEditor, applyOffset: boolean): ArchivoEditor {
+    return {
+      ...base,
+      id: this.crearIdArchivo(),
+      page: this.paginaActual - 1,
+      x: base.x + (applyOffset ? 28 : 0),
+      y: base.y + (applyOffset ? 28 : 0),
+      zIndex: this.siguienteZIndexImagen(),
+      cropRect: { ...base.cropRect },
+    };
+  }
+
+  private insertarImagenClon(clone: ArchivoEditor): void {
+    this.ajustarDentroHoja(clone, false);
+    this.elementosDiseno = [...this.elementosDiseno, clone];
+    this.archivoSeleccionadoId = clone.id;
+    this.textoSeleccionadoId = null;
+    this.cropModeFileId = clone.id;
+    this.scheduleRender();
+  }
+
+  private normalizeInputFiles(files: File[] | FileList | unknown): File[] {
+    if (!files) {
+      return [];
+    }
+    if (Array.isArray(files)) {
+      return files.filter((f): f is File => f instanceof File);
+    }
+    if (files instanceof FileList) {
+      return Array.from(files).filter((f): f is File => f instanceof File);
+    }
+    if (typeof files === 'object' && files !== null && 'length' in files) {
+      return Array.from(files as ArrayLike<unknown>).filter((f): f is File => f instanceof File);
+    }
+    return [];
   }
 
   private ajustarDentroHoja(item: { x: number; y: number; width: number; height: number }, applySnap: boolean): void {

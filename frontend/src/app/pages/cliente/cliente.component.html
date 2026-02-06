@@ -42,19 +42,27 @@
     </div>
   </form>
 
-  <app-upload-dropzone data-tour="cliente-upload" (archivosSeleccionados)="agregarArchivos($event)"></app-upload-dropzone>
-  <input #inputNuevaImagen type="file" multiple accept="image/*,application/pdf" hidden (change)="onNuevaImagenSeleccionada($event)" />
+  <div class="dropzone-composer" data-tour="cliente-upload">
+    <app-upload-dropzone (archivosSeleccionados)="agregarArchivos($event)"></app-upload-dropzone>
 
-  <section class="seccion-lista" data-tour="cliente-lista" cdkDropList [cdkDropListData]="elementosDiseno" (cdkDropListDropped)="drop($event)">
-    <h3>Imagenes en diseno</h3>
-    @for (archivo of elementosDiseno; track archivo.id) {
-      <div cdkDrag class="archivo-item">
-        <span>{{ $index + 1 }}. {{ archivo.file.name }}</span>
-        <button type="button" (click)="seleccionarArchivo(archivo)">Editar en hoja</button>
-        <button type="button" (click)="quitarElementoDisenoPorId(archivo.id)">Quitar</button>
+    @if (elementosDiseno.length) {
+      <div class="dropzone-previews">
+        @for (archivo of elementosDiseno; track archivo.id) {
+          <article class="preview-item">
+            <button class="preview-remove" type="button" title="Quitar imagen" (click)="quitarElementoDisenoPorId(archivo.id)">x</button>
+            <div class="preview-media">
+              <img [src]="obtenerPreview(archivo)" [alt]="archivo.file.name" />
+            </div>
+            <div class="preview-meta">
+              <strong>{{ archivo.file.name }}</strong>
+              <button type="button" (click)="seleccionarArchivo(archivo)">Editar en hoja</button>
+            </div>
+          </article>
+        }
       </div>
     }
-  </section>
+  </div>
+  <input #inputNuevaImagen type="file" multiple accept="image/*,application/pdf" hidden (change)="onNuevaImagenSeleccionada($event)" />
 
   <section class="seccion-lista" cdkDropList [cdkDropListData]="anexosPdf" (cdkDropListDropped)="dropAnexos($event)">
     <h3>Anexos PDF (al final)</h3>
@@ -171,6 +179,7 @@
           <button type="button" (click)="agregarImagenDesdeMenu()">Anadir nueva imagen</button>
           @if (menuContextual.target === 'image') {
             <button type="button" (click)="activarRecorteDesdeMenu()">Recortar imagen</button>
+            <button type="button" (click)="duplicarImagenDesdeMenu()">Duplicar imagen</button>
           }
           @if (menuContextual.target === 'text') {
             <button type="button" (click)="activarEdicionInlineDesdeMenu()">Editar inline (activo)</button>

@@ -33,6 +33,10 @@
   gap: 2px;
 }
 
+:host ::ng-deep .dz-area.dz-started .dz-message {
+  display: grid !important;
+}
+
 .dz-click-target h4 {
   margin: 0;
   color: #123465;
